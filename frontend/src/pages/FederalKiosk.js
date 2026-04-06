@@ -13,12 +13,12 @@ const FederalKiosk = () => {
     {
       id: 1,
       url: "https://customer-assets.emergentagent.com/job_source-check-5/artifacts/17o0c45w_IMG-20260225-WA0003%20%281%29.jpg",
-      title: "ByteFederal Kiosk Screen"
+      title: "Bonding Kiosk Screen"
     },
     {
       id: 2,
       url: "https://customer-assets.emergentagent.com/job_source-check-5/artifacts/f10o65uq_IMG-20260225-WA0002%20%281%29.jpg",
-      title: "ByteFederal Kiosk Machine"
+      title: "Bonding Kiosk Machine"
     },
     {
       id: 3,
@@ -62,7 +62,7 @@ const FederalKiosk = () => {
           Federal Bonding Kiosk
         </h1>
         <p className="text-[#71767a] mb-6 text-sm sm:text-base">
-          Use ByteFederal kiosks nationwide to post your surety bond. Tap on any image to enlarge.
+          Use authorized bonding kiosks nationwide to post your surety bond. Tap on any image to enlarge.
         </p>
 
         {/* Kiosk Info */}
@@ -73,6 +73,7 @@ const FederalKiosk = () => {
             <li>• Syncs directly with federal database</li>
             <li>• No personal information required at kiosk</li>
             <li>• Accepts cash deposits for surety bonds</li>
+            <li>• Multiple kiosk providers accepted</li>
           </ul>
         </div>
 

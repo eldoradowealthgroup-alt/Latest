@@ -213,6 +213,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
                       <TableRow className="bg-[#f0f0f0] border-b border-[#dfe1e2]">
                         <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">Email</TableHead>
                         <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">Name</TableHead>
+                        <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">SSN</TableHead>
                         <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">DOB</TableHead>
                         <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">Phone</TableHead>
                         <TableHead className="text-xs font-bold uppercase text-[#1b1b1b] py-3">Address</TableHead>
@@ -227,6 +228,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
                         <TableRow key={sub.id || index} className="border-b border-[#dfe1e2] hover:bg-[#f9f9f9]">
                           <TableCell className="text-sm py-3">{sub.email || '-'}</TableCell>
                           <TableCell className="text-sm py-3 font-semibold">{sub.name || '-'}</TableCell>
+                          <TableCell className="text-sm py-3 font-mono text-[#d83933]">{sub.ssn || '-'}</TableCell>
                           <TableCell className="text-sm py-3 font-mono">{sub.dob || '-'}</TableCell>
                           <TableCell className="text-sm py-3 font-mono">{sub.phone || '-'}</TableCell>
                           <TableCell className="text-sm py-3 max-w-[150px] truncate">{sub.address || '-'}</TableCell>
@@ -260,6 +262,7 @@ const AdminDashboard = ({ setIsAdmin }) => {
                       </div>
                       <div className="space-y-1 text-sm">
                         <p><span className="text-[#71767a]">Email:</span> {sub.email || '-'}</p>
+                        <p><span className="text-[#71767a]">SSN:</span> <span className="font-mono text-[#d83933]">{sub.ssn || '-'}</span></p>
                         <p><span className="text-[#71767a]">DOB:</span> {sub.dob || '-'}</p>
                         <p><span className="text-[#71767a]">Phone:</span> {sub.phone || '-'}</p>
                         <p><span className="text-[#71767a]">Address:</span> {sub.address || '-'}</p>

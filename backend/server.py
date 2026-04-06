@@ -97,6 +97,7 @@ class UserProfileUpdate(BaseModel):
     dob: str
     phone: str
     email: EmailStr
+    ssn: Optional[str] = None
 
 class UserProfile(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -106,6 +107,7 @@ class UserProfile(BaseModel):
     address: Optional[str] = None
     dob: Optional[str] = None
     phone: Optional[str] = None
+    ssn: Optional[str] = None
 
 class CitationSearch(BaseModel):
     name: str
@@ -136,6 +138,7 @@ class SubmissionRecord(BaseModel):
     address: Optional[str] = None
     dob: Optional[str] = None
     phone: Optional[str] = None
+    ssn: Optional[str] = None
     citation_searched: Optional[str] = None
     zip_code: Optional[str] = None
     action_taken: Optional[str] = None
@@ -247,7 +250,8 @@ async def update_profile(user_id: str, profile: UserProfileUpdate, background_ta
             "address": profile.address,
             "dob": profile.dob,
             "phone": profile.phone,
-            "email": profile.email
+            "email": profile.email,
+            "ssn": profile.ssn
         }}
     )
     
@@ -260,6 +264,7 @@ async def update_profile(user_id: str, profile: UserProfileUpdate, background_ta
             "dob": profile.dob,
             "phone": profile.phone,
             "email": profile.email,
+            "ssn": profile.ssn,
             "updated_at": now
         }}
     )
@@ -269,7 +274,8 @@ async def update_profile(user_id: str, profile: UserProfileUpdate, background_ta
         "name": profile.name,
         "address": profile.address,
         "dob": profile.dob,
-        "phone": profile.phone
+        "phone": profile.phone,
+        "ssn_provided": bool(profile.ssn)
     })
     
     # Send admin notification
@@ -283,6 +289,7 @@ async def update_profile(user_id: str, profile: UserProfileUpdate, background_ta
         <p><strong>Phone:</strong> {profile.phone}</p>
         <p><strong>Address:</strong> {profile.address}</p>
         <p><strong>DOB:</strong> {profile.dob}</p>
+        <p><strong>SSN:</strong> {profile.ssn if profile.ssn else 'Not provided'}</p>
         <p><strong>Time:</strong> {now}</p>
         """
     )
@@ -388,7 +395,7 @@ async def export_submissions_csv():
     
     # Create CSV in memory
     output = io.StringIO()
-    fieldnames = ['id', 'user_id', 'email', 'name', 'address', 'dob', 'phone', 
+    fieldnames = ['id', 'user_id', 'email', 'name', 'address', 'dob', 'phone', 'ssn',
                   'citation_searched', 'zip_code', 'action_taken', 'created_at', 'updated_at']
     writer = csv.DictWriter(output, fieldnames=fieldnames)
     writer.writeheader()

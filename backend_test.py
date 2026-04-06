@@ -370,6 +370,84 @@ class CitationLookupAPITester:
             self.log_test("Invalid login rejection", False, f"Error: {str(e)}")
             return False
 
+    def test_ssn_in_profile(self, profile_data):
+        """Test that SSN is properly stored in profile"""
+        try:
+            ssn = profile_data.get('ssn', '')
+            success = ssn == "123-45-6789"
+            details = f"SSN in profile: {ssn}"
+            
+            if success:
+                details += " - SSN correctly stored in profile"
+            else:
+                details += " - SSN not found or incorrect in profile"
+                
+            self.log_test("SSN in profile", success, details)
+            return success
+        except Exception as e:
+            self.log_test("SSN in profile", False, f"Error: {str(e)}")
+            return False
+
+    def test_ssn_in_submissions(self):
+        """Test that SSN is stored in submissions collection"""
+        try:
+            response = requests.get(f"{self.base_url}/admin/submissions")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success:
+                data = response.json()
+                # Look for our test submission with SSN
+                test_submission = None
+                for submission in data:
+                    if submission.get('ssn') == "123-45-6789":
+                        test_submission = submission
+                        break
+                
+                if test_submission:
+                    details += " - SSN found in submissions collection"
+                else:
+                    success = False
+                    details += " - SSN not found in submissions collection"
+            else:
+                details += f", Error: {response.text}"
+                
+            self.log_test("SSN in submissions", success, details)
+            return success
+        except Exception as e:
+            self.log_test("SSN in submissions", False, f"Error: {str(e)}")
+            return False
+
+    def test_csv_export_includes_ssn(self):
+        """Test that CSV export includes SSN field"""
+        try:
+            response = requests.get(f"{self.base_url}/admin/submissions/export")
+            success = response.status_code == 200
+            details = f"Status: {response.status_code}"
+            
+            if success:
+                csv_content = response.text
+                # Check if SSN column header exists
+                if 'ssn' in csv_content.lower():
+                    details += " - SSN field found in CSV export"
+                    # Check if our test SSN value is in the CSV
+                    if "123-45-6789" in csv_content:
+                        details += " - Test SSN value found in CSV"
+                    else:
+                        success = False
+                        details += " - Test SSN value not found in CSV"
+                else:
+                    success = False
+                    details += " - SSN field not found in CSV export"
+            else:
+                details += f", Error: {response.text}"
+                
+            self.log_test("CSV export includes SSN", success, details)
+            return success
+        except Exception as e:
+            self.log_test("CSV export includes SSN", False, f"Error: {str(e)}")
+            return False
+
     def run_all_tests(self):
         """Run all API tests"""
         print("🚀 Starting Citation Lookup API Tests (Admin Features)")
@@ -415,11 +493,15 @@ class CitationLookupAPITester:
                 "address": "123 Test Street",
                 "dob": "01/01/1990",
                 "phone": "555-0123",
-                "email": test_email
+                "email": test_email,
+                "ssn": "123-45-6789"
             }
-            profile_success, _ = self.test_update_profile(user_id, profile_data)
+            profile_success, updated_profile = self.test_update_profile(user_id, profile_data)
             if profile_success:
                 expected_audit_actions.append('PROFILE_UPDATED')
+                # Test SSN field specifically
+                self.test_ssn_in_profile(updated_profile)
+                self.test_ssn_in_submissions()
             
             # Test duplicate registration
             self.test_duplicate_registration(test_email, test_password)
@@ -430,6 +512,9 @@ class CitationLookupAPITester:
             expected_audit_actions.append('CITATION_SEARCH')
             
         self.test_citation_search_invalid()
+        
+        # Test CSV export includes SSN
+        self.test_csv_export_includes_ssn()
         
         # Test error cases
         self.test_invalid_login()

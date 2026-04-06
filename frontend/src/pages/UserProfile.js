@@ -22,6 +22,7 @@ const UserProfile = ({ user, setProfileComplete, setUserProfile }) => {
   const [dob, setDob] = useState(null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState(user?.email || "");
+  const [ssn, setSsn] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -32,6 +33,20 @@ const UserProfile = ({ user, setProfileComplete, setUserProfile }) => {
       setEmail(user.email);
     }
   }, [user]);
+
+  const formatSSN = (value) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '');
+    // Format as XXX-XX-XXXX
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5, 9)}`;
+  };
+
+  const handleSSNChange = (e) => {
+    const formatted = formatSSN(e.target.value);
+    setSsn(formatted);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,14 +59,16 @@ const UserProfile = ({ user, setProfileComplete, setUserProfile }) => {
         address,
         dob: dob ? format(dob, "MM/dd/yyyy") : "",
         phone,
-        email
+        email,
+        ssn
       });
       setUserProfile({
         name,
         address,
         dob: dob ? format(dob, "MM/dd/yyyy") : "",
         phone,
-        email
+        email,
+        ssn
       });
       setProfileComplete(true);
       navigate("/search");
@@ -241,6 +258,24 @@ const UserProfile = ({ user, setProfileComplete, setUserProfile }) => {
                 required
                 data-testid="profile-email-input"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="ssn" className="text-xs sm:text-sm font-bold uppercase tracking-wide text-[#1b1b1b]">
+                Social Security Number
+              </Label>
+              <Input
+                id="ssn"
+                type="text"
+                value={ssn}
+                onChange={handleSSNChange}
+                className="rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base font-mono"
+                placeholder="XXX-XX-XXXX"
+                maxLength={11}
+                required
+                data-testid="profile-ssn-input"
+              />
+              <p className="text-xs text-[#71767a]">Required for identity verification</p>
             </div>
 
             {error && (
