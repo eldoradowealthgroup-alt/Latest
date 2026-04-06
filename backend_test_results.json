@@ -1,0 +1,61 @@
+{
+  "summary": "11/11 tests passed",
+  "success_rate": "100.0%",
+  "results": [
+    {
+      "test": "Root endpoint",
+      "success": true,
+      "details": "Status: 200, Response: {'message': 'Citation Lookup API'}"
+    },
+    {
+      "test": "Admin login",
+      "success": true,
+      "details": "Status: 200, User ID: admin, Is Admin: True"
+    },
+    {
+      "test": "Admin submissions",
+      "success": true,
+      "details": "Status: 200, Submissions count: 0"
+    },
+    {
+      "test": "User registration",
+      "success": true,
+      "details": "Status: 200, User ID: f7ec97d8-4df0-4b5a-876a-5e3f9eda4728"
+    },
+    {
+      "test": "User login",
+      "success": true,
+      "details": "Status: 200, User ID: f7ec97d8-4df0-4b5a-876a-5e3f9eda4728, Is Admin: False"
+    },
+    {
+      "test": "Get user profile",
+      "success": true,
+      "details": "Status: 200, Profile: {'id': 'f7ec97d8-4df0-4b5a-876a-5e3f9eda4728', 'email': 'test_20260406_202913@example.com', 'name': None, 'address': None, 'dob': None, 'phone': None}"
+    },
+    {
+      "test": "Update user profile",
+      "success": true,
+      "details": "Status: 200, Updated profile: {'id': 'f7ec97d8-4df0-4b5a-876a-5e3f9eda4728', 'email': 'test_20260406_202913@example.com', 'name': 'Test User', 'address': '123 Test Street', 'dob': '01/01/1990', 'phone': '555-0123'}"
+    },
+    {
+      "test": "Duplicate registration prevention",
+      "success": true,
+      "details": "Status: 400 - Correctly rejected duplicate registration"
+    },
+    {
+      "test": "Citation search (valid)",
+      "success": true,
+      "details": "Status: 200, Found: True, Citations: 4 - All expected data present"
+    },
+    {
+      "test": "Citation search (invalid)",
+      "success": true,
+      "details": "Status: 200, Found: False, Message: Citations not found - Correct not found response"
+    },
+    {
+      "test": "Invalid login rejection",
+      "success": true,
+      "details": "Status: 401 - Correctly rejected invalid credentials"
+    }
+  ]
+}

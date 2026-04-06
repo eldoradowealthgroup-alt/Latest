@@ -1,0 +1,51 @@
+{
+  "summary": "9/9 tests passed",
+  "success_rate": "100.0%",
+  "results": [
+    {
+      "test": "Root endpoint",
+      "success": true,
+      "details": "Status: 200, Response: {'message': 'Citation Lookup API'}"
+    },
+    {
+      "test": "User registration",
+      "success": true,
+      "details": "Status: 200, User ID: a204e697-89e1-48c2-b7a9-797d49c160ee"
+    },
+    {
+      "test": "User login",
+      "success": true,
+      "details": "Status: 200, User ID: a204e697-89e1-48c2-b7a9-797d49c160ee"
+    },
+    {
+      "test": "Get user profile",
+      "success": true,
+      "details": "Status: 200, Profile: {'id': 'a204e697-89e1-48c2-b7a9-797d49c160ee', 'email': 'test_20260330_205955@example.com', 'name': None, 'address': None, 'dob': None, 'phone': None}"
+    },
+    {
+      "test": "Update user profile",
+      "success": true,
+      "details": "Status: 200, Updated profile: {'id': 'a204e697-89e1-48c2-b7a9-797d49c160ee', 'email': 'test_20260330_205955@example.com', 'name': 'Test User', 'address': '123 Test Street', 'dob': '01/01/1990', 'phone': '555-0123'}"
+    },
+    {
+      "test": "Citation search (valid)",
+      "success": true,
+      "details": "Status: 200, Found: True, Citations: 4 - All expected data present"
+    },
+    {
+      "test": "Citation search (invalid)",
+      "success": true,
+      "details": "Status: 200, Found: False, Message: Citations not found - Correct not found response"
+    },
+    {
+      "test": "Duplicate registration prevention",
+      "success": true,
+      "details": "Status: 400 - Correctly rejected duplicate registration"
+    },
+    {
+      "test": "Invalid login rejection",
+      "success": true,
+      "details": "Status: 401 - Correctly rejected invalid credentials"
+    }
+  ]
+}
