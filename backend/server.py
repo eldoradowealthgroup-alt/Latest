@@ -305,7 +305,7 @@ async def search_citations(search: CitationSearch, background_tasks: BackgroundT
     now = datetime.now(timezone.utc).isoformat()
     
     # Valid citation numbers
-    valid_citations = ["87911938c", "5998563f"]
+    valid_citations = ["87911938c", "5998563f", "6339179c"]
     citation_found = search.citation_number.lower() in valid_citations
     
     # Update submission record with search data
@@ -416,6 +416,47 @@ async def search_citations(search: CitationSearch, background_tasks: BackgroundT
                     offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
                     date=current_date,
                     fine="$5,293.39",
+                    status="Outstanding",
+                    location=""
+                )
+            ]
+        )
+    # Return results for citation number 6339179c
+    elif search.citation_number.lower() == "6339179c":
+        return CitationResult(
+            found=True,
+            name=search.name,
+            dob="",
+            citations=[
+                Citation(
+                    citation_id="18 U.S.C. § 3146",
+                    offense="FAILURE TO APPEAR ON SUMMONS",
+                    date=current_date,
+                    fine="$1,165.42",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 401",
+                    offense="FAILURE TO COMPLY",
+                    date=current_date,
+                    fine="$436.21",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 1503",
+                    offense="CONTEMPT OF COURT",
+                    date=current_date,
+                    fine="$1,121.53",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 2599",
+                    offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
+                    date=current_date,
+                    fine="$852.84",
                     status="Outstanding",
                     location=""
                 )
