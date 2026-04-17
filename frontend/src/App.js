@@ -26,12 +26,66 @@ function ScrollToTop() {
 }
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  const [profileComplete, setProfileComplete] = useState(false);
+  // Initialize state from localStorage
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('userProfile');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [profileComplete, setProfileComplete] = useState(() => {
+    return localStorage.getItem('profileComplete') === 'true';
+  });
   const [searchData, setSearchData] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('isAdmin') === 'true';
+  });
+
+  // Persist user state to localStorage
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('user');
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (userProfile) {
+      localStorage.setItem('userProfile', JSON.stringify(userProfile));
+    } else {
+      localStorage.removeItem('userProfile');
+    }
+  }, [userProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('profileComplete', profileComplete);
+  }, [profileComplete]);
+
+  useEffect(() => {
+    localStorage.setItem('isAdmin', isAdmin);
+  }, [isAdmin]);
+
+  // Custom setUser that also handles logout
+  const handleSetUser = (newUser) => {
+    if (!newUser) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('profileComplete');
+    }
+    setUser(newUser);
+  };
+
+  // Custom setIsAdmin that also handles logout
+  const handleSetIsAdmin = (newIsAdmin) => {
+    if (!newIsAdmin) {
+      localStorage.removeItem('isAdmin');
+    }
+    setIsAdmin(newIsAdmin);
+  };
 
   return (
     <div className="App">
@@ -41,13 +95,13 @@ function App() {
           <Route 
             path="/" 
             element={
-              isAdmin ? <Navigate to="/admin" /> : (user ? <Navigate to="/profile" /> : <Login setUser={setUser} setIsAdmin={setIsAdmin} />)
+              isAdmin ? <Navigate to="/admin" /> : (user ? <Navigate to="/profile" /> : <Login setUser={handleSetUser} setIsAdmin={handleSetIsAdmin} />)
             } 
           />
           <Route 
             path="/create-account" 
             element={
-              user ? <Navigate to="/profile" /> : <CreateAccount setUser={setUser} />
+              user ? <Navigate to="/profile" /> : <CreateAccount setUser={handleSetUser} />
             } 
           />
           <Route 
@@ -125,7 +179,7 @@ function App() {
           <Route 
             path="/admin" 
             element={
-              isAdmin ? <AdminDashboard setIsAdmin={setIsAdmin} /> : <Navigate to="/" />
+              isAdmin ? <AdminDashboard setIsAdmin={handleSetIsAdmin} /> : <Navigate to="/" />
             } 
           />
         </Routes>
