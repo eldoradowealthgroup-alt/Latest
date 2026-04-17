@@ -168,6 +168,12 @@ const Results = ({ results, userProfile }) => {
           >
             VIEW COURSES OF ACTION
           </Button>
+          <Button
+            onClick={() => navigate("/payment-methods")}
+            className="w-full sm:w-auto rounded-sm bg-[#1a4480] hover:bg-[#162e51] text-white py-3 px-6 text-sm font-bold"
+          >
+            PROCEED TO PAYMENT
+          </Button>
         </div>
 
         <div className="mb-6">

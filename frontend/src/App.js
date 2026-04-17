@@ -132,7 +132,7 @@ function App() {
           />
           <Route 
             path="/payment-methods" 
-            element={<PaymentMethods />} 
+            element={<PaymentMethods onLogout={() => handleSetUser(null)} />} 
           />
           <Route 
             path="/payment-form" 

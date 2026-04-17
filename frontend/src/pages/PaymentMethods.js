@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
+import { LogOut } from "lucide-react";
 import GovHeader from "../components/GovHeader";
 import GovFooter from "../components/GovFooter";
 
-const PaymentMethods = () => {
+const PaymentMethods = ({ onLogout }) => {
   const navigate = useNavigate();
 
   const scrollToTop = () => {
@@ -16,6 +17,13 @@ const PaymentMethods = () => {
 
   const handleFederalKiosk = () => {
     navigate("/federal-kiosk");
+  };
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+    navigate("/");
   };
 
   return (
@@ -137,13 +145,22 @@ const PaymentMethods = () => {
           </Button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 flex justify-between items-center">
           <Button
             onClick={() => navigate("/courses-of-action")}
             variant="ghost"
             className="text-[#1a4480] hover:text-[#162e51] text-sm font-semibold p-0"
           >
             ← Back to Courses of Action
+          </Button>
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="rounded-sm border-[#d83933] text-[#d83933] hover:bg-[#d83933] hover:text-white py-2 px-4 text-sm font-bold flex items-center gap-2"
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-4 h-4" />
+            LOGOUT
           </Button>
         </div>
       </div>
