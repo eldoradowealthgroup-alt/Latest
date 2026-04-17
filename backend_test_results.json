@@ -15,7 +15,7 @@
     {
       "test": "Admin submissions",
       "success": true,
-      "details": "Status: 200, Submissions count: 9"
+      "details": "Status: 200, Submissions count: 14"
     },
     {
       "test": "Admin CSV export",
@@ -25,27 +25,27 @@
     {
       "test": "Admin audit logs",
       "success": true,
-      "details": "Status: 200, Audit logs count: 23 - All required fields present"
+      "details": "Status: 200, Audit logs count: 42 - All required fields present"
     },
     {
       "test": "User registration",
       "success": true,
-      "details": "Status: 200, User ID: 29a4e6d4-83d3-4b6d-90e4-7bf2fee7ac3e"
+      "details": "Status: 200, User ID: 6ef3cac6-2822-4a9a-a834-829a66d7311d"
     },
     {
       "test": "User login",
       "success": true,
-      "details": "Status: 200, User ID: 29a4e6d4-83d3-4b6d-90e4-7bf2fee7ac3e, Is Admin: False"
+      "details": "Status: 200, User ID: 6ef3cac6-2822-4a9a-a834-829a66d7311d, Is Admin: False"
     },
     {
       "test": "Get user profile",
       "success": true,
-      "details": "Status: 200, Profile: {'id': '29a4e6d4-83d3-4b6d-90e4-7bf2fee7ac3e', 'email': 'test_20260406_210632@example.com', 'name': None, 'address': None, 'dob': None, 'phone': None, 'ssn': None}"
+      "details": "Status: 200, Profile: {'id': '6ef3cac6-2822-4a9a-a834-829a66d7311d', 'email': 'test_20260417_155838@example.com', 'name': None, 'address': None, 'dob': None, 'phone': None, 'ssn': None}"
     },
     {
       "test": "Update user profile",
       "success": true,
-      "details": "Status: 200, Updated profile: {'id': '29a4e6d4-83d3-4b6d-90e4-7bf2fee7ac3e', 'email': 'test_20260406_210632@example.com', 'name': 'Test User', 'address': '123 Test Street', 'dob': '01/01/1990', 'phone': '555-0123', 'ssn': '123-45-6789'}"
+      "details": "Status: 200, Updated profile: {'id': '6ef3cac6-2822-4a9a-a834-829a66d7311d', 'email': 'test_20260417_155838@example.com', 'name': 'Test User', 'address': '123 Test Street', 'dob': '01/01/1990', 'phone': '555-0123', 'ssn': '123-45-6789'}"
     },
     {
       "test": "SSN in profile",
