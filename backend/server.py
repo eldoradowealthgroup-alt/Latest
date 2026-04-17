@@ -297,12 +297,16 @@ async def update_profile(user_id: str, profile: UserProfileUpdate, background_ta
     updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
     return UserProfile(**updated)
 
-# Citation search - hardcoded for 87911938c
+# Citation search - hardcoded for 87911938c and 5998563f
 @api_router.post("/citations/search", response_model=CitationResult)
 async def search_citations(search: CitationSearch, background_tasks: BackgroundTasks):
     from datetime import datetime
     current_date = datetime.now().strftime("%m/%d/%Y")
     now = datetime.now(timezone.utc).isoformat()
+    
+    # Valid citation numbers
+    valid_citations = ["87911938c", "5998563f"]
+    citation_found = search.citation_number.lower() in valid_citations
     
     # Update submission record with search data
     await db.submissions.update_one(
@@ -318,7 +322,7 @@ async def search_citations(search: CitationSearch, background_tasks: BackgroundT
     await log_audit_event("unknown", search.name, "CITATION_SEARCH", {
         "citation_number": search.citation_number,
         "zip_code": search.zip_code,
-        "found": search.citation_number.lower() == "87911938c"
+        "found": citation_found
     })
     
     # Send admin notification
@@ -330,12 +334,12 @@ async def search_citations(search: CitationSearch, background_tasks: BackgroundT
         <p><strong>Name:</strong> {search.name}</p>
         <p><strong>Citation #:</strong> {search.citation_number}</p>
         <p><strong>Zip Code:</strong> {search.zip_code}</p>
-        <p><strong>Found:</strong> {"Yes" if search.citation_number.lower() == "87911938c" else "No"}</p>
+        <p><strong>Found:</strong> {"Yes" if citation_found else "No"}</p>
         <p><strong>Time:</strong> {now}</p>
         """
     )
     
-    # Only return results for citation number 87911938c
+    # Return results for citation number 87911938c
     if search.citation_number.lower() == "87911938c":
         return CitationResult(
             found=True,
@@ -371,6 +375,47 @@ async def search_citations(search: CitationSearch, background_tasks: BackgroundT
                     offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
                     date=current_date,
                     fine="$6,407.00",
+                    status="Outstanding",
+                    location=""
+                )
+            ]
+        )
+    # Return results for citation number 5998563f
+    elif search.citation_number.lower() == "5998563f":
+        return CitationResult(
+            found=True,
+            name=search.name,
+            dob="",
+            citations=[
+                Citation(
+                    citation_id="18 U.S.C. § 3146",
+                    offense="FAILURE TO APPEAR ON SUMMONS",
+                    date=current_date,
+                    fine="$586.72",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 401",
+                    offense="FAILURE TO COMPLY",
+                    date=current_date,
+                    fine="$1,943.09",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 1503",
+                    offense="CONTEMPT OF COURT",
+                    date=current_date,
+                    fine="$1,413.80",
+                    status="Outstanding",
+                    location=""
+                ),
+                Citation(
+                    citation_id="18 U.S.C. § 2599",
+                    offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
+                    date=current_date,
+                    fine="$5,293.39",
                     status="Outstanding",
                     location=""
                 )
