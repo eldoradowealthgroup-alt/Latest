@@ -1,82 +1,85 @@
-from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, Column, String, DateTime, Text, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
-import uuid
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+import os
+import uuid
 import bcrypt
 import csv
 import io
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# Load environment variables
+load_dotenv()
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Database Configuration
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./citation_lookup.db")
 
-# Create the main app without a prefix
-app = FastAPI()
+# Handle Railway's postgres:// vs postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# SQLite needs special handling
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 # Admin credentials
-ADMIN_EMAIL = "admin"
-ADMIN_PASSWORD = "Money2026$"
-ADMIN_NOTIFICATION_EMAIL = os.environ.get('ADMIN_NOTIFICATION_EMAIL', '')
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', '')
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Money2026$")
 
-# Email notification helper
-async def send_admin_notification(subject: str, content: str):
-    """Send email notification to admin via SendGrid"""
-    if not all([SENDGRID_API_KEY, SENDER_EMAIL, ADMIN_NOTIFICATION_EMAIL]):
-        logger.info(f"Email notification skipped (not configured): {subject}")
-        return False
+# SQLAlchemy Models
+class User(Base):
+    __tablename__ = "users"
     
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail
-        
-        message = Mail(
-            from_email=SENDER_EMAIL,
-            to_emails=ADMIN_NOTIFICATION_EMAIL,
-            subject=f"[Citation Lookup] {subject}",
-            html_content=content
-        )
-        
-        sg = SendGridAPIClient(SENDGRID_API_KEY)
-        response = sg.send(message)
-        logger.info(f"Admin notification sent: {subject}")
-        return response.status_code == 202
-    except Exception as e:
-        logger.error(f"Failed to send admin notification: {e}")
-        return False
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    dob = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    ssn = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-# Audit log helper
-async def log_audit_event(user_id: str, user_email: str, action: str, details: dict = None):
-    """Log user action to audit log collection"""
-    audit_entry = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "user_email": user_email,
-        "action": action,
-        "details": details or {},
-        "ip_address": "",  # Would be populated from request in production
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    await db.audit_logs.insert_one(audit_entry)
-    return audit_entry
+class Submission(Base):
+    __tablename__ = "submissions"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, index=True, nullable=False)
+    email = Column(String, nullable=False)
+    name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    dob = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    ssn = Column(String, nullable=True)
+    citation_searched = Column(String, nullable=True)
+    zip_code = Column(String, nullable=True)
+    action_taken = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-# Define Models
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, nullable=False)
+    user_email = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+# Create tables
+Base.metadata.create_all(bind=engine)
+
+# Pydantic Schemas
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -86,7 +89,7 @@ class UserLogin(BaseModel):
     password: str
 
 class UserResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     email: str
     is_admin: bool = False
@@ -100,7 +103,7 @@ class UserProfileUpdate(BaseModel):
     ssn: Optional[str] = None
 
 class UserProfile(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     email: str
     name: Optional[str] = None
@@ -130,7 +133,7 @@ class CitationResult(BaseModel):
     message: Optional[str] = None
 
 class SubmissionRecord(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     user_id: str
     email: str
@@ -142,344 +145,226 @@ class SubmissionRecord(BaseModel):
     citation_searched: Optional[str] = None
     zip_code: Optional[str] = None
     action_taken: Optional[str] = None
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: datetime
 
 class AuditLogEntry(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(from_attributes=True)
     id: str
     user_id: str
     user_email: str
     action: str
-    details: dict = {}
-    ip_address: str = ""
-    timestamp: str
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
+    timestamp: datetime
 
-# Auth routes
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Helper functions
+def log_audit_event(db: Session, user_id: str, user_email: str, action: str, details: str = None):
+    audit_entry = AuditLog(
+        user_id=user_id,
+        user_email=user_email,
+        action=action,
+        details=details
+    )
+    db.add(audit_entry)
+    db.commit()
+
+# FastAPI App
+app = FastAPI(
+    title="Citation Lookup API",
+    description="U.S. District Court Citation Lookup System",
+    version="1.0.0"
+)
+
+# CORS Configuration
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,
+    "http://localhost:3000",
+    "http://localhost:3001",
+]
+
+# Add any additional origins from environment
+if os.environ.get("ADDITIONAL_ORIGINS"):
+    ALLOWED_ORIGINS.extend(os.environ.get("ADDITIONAL_ORIGINS").split(","))
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# API Router
+api_router = APIRouter(prefix="/api")
+
+@api_router.get("/")
+async def root():
+    return {"message": "Citation Lookup API", "version": "1.0.0"}
+
+@api_router.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute("SELECT 1" if not DATABASE_URL.startswith("sqlite") else "SELECT 1")
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": str(e)}
+
+# Auth Routes
 @api_router.post("/auth/register", response_model=UserResponse)
-async def register(user: UserCreate, background_tasks: BackgroundTasks):
-    # Check if user exists
-    existing = await db.users.find_one({"email": user.email}, {"_id": 0})
+async def register(user: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.email == user.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Hash password
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(user.password.encode('utf-8'), salt)
     
     user_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    user_doc = {
-        "id": user_id,
-        "email": user.email,
-        "password": hashed.decode('utf-8'),
-        "created_at": now
-    }
-    
-    await db.users.insert_one(user_doc)
-    
-    # Create submission record for admin tracking
-    submission = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "email": user.email,
-        "created_at": now,
-        "updated_at": now
-    }
-    await db.submissions.insert_one(submission)
-    
-    # Log audit event
-    await log_audit_event(user_id, user.email, "USER_REGISTERED", {"registration_time": now})
-    
-    # Send admin notification in background
-    background_tasks.add_task(
-        send_admin_notification,
-        "New User Registration",
-        f"""
-        <h2>New User Registered</h2>
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>User ID:</strong> {user_id}</p>
-        <p><strong>Time:</strong> {now}</p>
-        """
+    db_user = User(
+        id=user_id,
+        email=user.email,
+        password=hashed.decode('utf-8')
     )
+    db.add(db_user)
+    
+    submission = Submission(
+        user_id=user_id,
+        email=user.email
+    )
+    db.add(submission)
+    
+    db.commit()
+    
+    log_audit_event(db, user_id, user.email, "USER_REGISTERED")
     
     return UserResponse(id=user_id, email=user.email, is_admin=False)
 
 @api_router.post("/auth/login", response_model=UserResponse)
-async def login(user: UserLogin):
-    # Check for admin login
+async def login(user: UserLogin, db: Session = Depends(get_db)):
     if user.email == ADMIN_EMAIL and user.password == ADMIN_PASSWORD:
-        await log_audit_event("admin", "admin", "ADMIN_LOGIN", {})
+        log_audit_event(db, "admin", "admin", "ADMIN_LOGIN")
         return UserResponse(id="admin", email="admin", is_admin=True)
     
-    # Find user
-    existing = await db.users.find_one({"email": user.email}, {"_id": 0})
-    if not existing:
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # Check password
-    if not bcrypt.checkpw(user.password.encode('utf-8'), existing['password'].encode('utf-8')):
-        await log_audit_event(existing.get('id', 'unknown'), user.email, "LOGIN_FAILED", {"reason": "invalid_password"})
+    if not bcrypt.checkpw(user.password.encode('utf-8'), db_user.password.encode('utf-8')):
+        log_audit_event(db, db_user.id, user.email, "LOGIN_FAILED", "invalid_password")
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
-    # Log successful login
-    await log_audit_event(existing['id'], existing['email'], "USER_LOGIN", {})
+    log_audit_event(db, db_user.id, db_user.email, "USER_LOGIN")
     
-    return UserResponse(id=existing['id'], email=existing['email'], is_admin=False)
+    return UserResponse(id=db_user.id, email=db_user.email, is_admin=False)
 
-# Profile routes
+# Profile Routes
 @api_router.get("/profile/{user_id}", response_model=UserProfile)
-async def get_profile(user_id: str):
-    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
+async def get_profile(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserProfile(**user)
+    return user
 
 @api_router.put("/profile/{user_id}", response_model=UserProfile)
-async def update_profile(user_id: str, profile: UserProfileUpdate, background_tasks: BackgroundTasks):
-    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+async def update_profile(user_id: str, profile: UserProfileUpdate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    now = datetime.now(timezone.utc).isoformat()
+    user.name = profile.name
+    user.address = profile.address
+    user.dob = profile.dob
+    user.phone = profile.phone
+    user.email = profile.email
+    user.ssn = profile.ssn
     
-    await db.users.update_one(
-        {"id": user_id},
-        {"$set": {
-            "name": profile.name,
-            "address": profile.address,
-            "dob": profile.dob,
-            "phone": profile.phone,
-            "email": profile.email,
-            "ssn": profile.ssn
-        }}
-    )
+    submission = db.query(Submission).filter(Submission.user_id == user_id).first()
+    if submission:
+        submission.name = profile.name
+        submission.address = profile.address
+        submission.dob = profile.dob
+        submission.phone = profile.phone
+        submission.email = profile.email
+        submission.ssn = profile.ssn
+        submission.updated_at = datetime.now(timezone.utc)
     
-    # Update submission record for admin tracking
-    await db.submissions.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "name": profile.name,
-            "address": profile.address,
-            "dob": profile.dob,
-            "phone": profile.phone,
-            "email": profile.email,
-            "ssn": profile.ssn,
-            "updated_at": now
-        }}
-    )
+    db.commit()
     
-    # Log audit event
-    await log_audit_event(user_id, profile.email, "PROFILE_UPDATED", {
-        "name": profile.name,
-        "address": profile.address,
-        "dob": profile.dob,
-        "phone": profile.phone,
-        "ssn_provided": bool(profile.ssn)
-    })
+    log_audit_event(db, user_id, profile.email, "PROFILE_UPDATED")
     
-    # Send admin notification
-    background_tasks.add_task(
-        send_admin_notification,
-        "User Profile Updated",
-        f"""
-        <h2>User Profile Updated</h2>
-        <p><strong>Name:</strong> {profile.name}</p>
-        <p><strong>Email:</strong> {profile.email}</p>
-        <p><strong>Phone:</strong> {profile.phone}</p>
-        <p><strong>Address:</strong> {profile.address}</p>
-        <p><strong>DOB:</strong> {profile.dob}</p>
-        <p><strong>SSN:</strong> {profile.ssn if profile.ssn else 'Not provided'}</p>
-        <p><strong>Time:</strong> {now}</p>
-        """
-    )
-    
-    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password": 0})
-    return UserProfile(**updated)
+    return user
 
-# Citation search - hardcoded for 87911938c and 5998563f
+# Citation Search
 @api_router.post("/citations/search", response_model=CitationResult)
-async def search_citations(search: CitationSearch, background_tasks: BackgroundTasks):
-    from datetime import datetime
+async def search_citations(search: CitationSearch, db: Session = Depends(get_db)):
     current_date = datetime.now().strftime("%m/%d/%Y")
-    now = datetime.now(timezone.utc).isoformat()
     
-    # Valid citation numbers
+    submission = db.query(Submission).filter(Submission.name == search.name).first()
+    if submission:
+        submission.citation_searched = search.citation_number
+        submission.zip_code = search.zip_code
+        submission.updated_at = datetime.now(timezone.utc)
+        db.commit()
+    
     valid_citations = ["87911938c", "5998563f", "6339179c"]
     citation_found = search.citation_number.lower() in valid_citations
     
-    # Update submission record with search data
-    await db.submissions.update_one(
-        {"name": search.name},
-        {"$set": {
-            "citation_searched": search.citation_number,
-            "zip_code": search.zip_code,
-            "updated_at": now
-        }}
-    )
+    log_audit_event(db, "unknown", search.name, "CITATION_SEARCH", 
+                   f"citation={search.citation_number}, found={citation_found}")
     
-    # Log audit event
-    await log_audit_event("unknown", search.name, "CITATION_SEARCH", {
-        "citation_number": search.citation_number,
-        "zip_code": search.zip_code,
-        "found": citation_found
-    })
-    
-    # Send admin notification
-    background_tasks.add_task(
-        send_admin_notification,
-        "Citation Search Performed",
-        f"""
-        <h2>Citation Search</h2>
-        <p><strong>Name:</strong> {search.name}</p>
-        <p><strong>Citation #:</strong> {search.citation_number}</p>
-        <p><strong>Zip Code:</strong> {search.zip_code}</p>
-        <p><strong>Found:</strong> {"Yes" if citation_found else "No"}</p>
-        <p><strong>Time:</strong> {now}</p>
-        """
-    )
-    
-    # Return results for citation number 87911938c
     if search.citation_number.lower() == "87911938c":
         return CitationResult(
-            found=True,
-            name=search.name,
-            dob="",
+            found=True, name=search.name, dob="",
             citations=[
-                Citation(
-                    citation_id="18 U.S.C. § 3146",
-                    offense="FAILURE TO APPEAR ON SUMMONS",
-                    date=current_date,
-                    fine="$2,133.75",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 401",
-                    offense="FAILURE TO COMPLY",
-                    date=current_date,
-                    fine="$2,202.75",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 1503",
-                    offense="CONTEMPT OF COURT",
-                    date=current_date,
-                    fine="$1,607.00",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 2599",
-                    offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
-                    date=current_date,
-                    fine="$6,407.00",
-                    status="Outstanding",
-                    location=""
-                )
+                Citation(citation_id="18 U.S.C. § 3146", offense="FAILURE TO APPEAR ON SUMMONS", date=current_date, fine="$2,133.75", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 401", offense="FAILURE TO COMPLY", date=current_date, fine="$2,202.75", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 1503", offense="CONTEMPT OF COURT", date=current_date, fine="$1,607.00", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 2599", offense="INTERFERING WITH JUDICIAL PROCEEDINGS", date=current_date, fine="$6,407.00", status="Outstanding", location="")
             ]
         )
-    # Return results for citation number 5998563f
     elif search.citation_number.lower() == "5998563f":
         return CitationResult(
-            found=True,
-            name=search.name,
-            dob="",
+            found=True, name=search.name, dob="",
             citations=[
-                Citation(
-                    citation_id="18 U.S.C. § 3146",
-                    offense="FAILURE TO APPEAR ON SUMMONS",
-                    date=current_date,
-                    fine="$586.72",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 401",
-                    offense="FAILURE TO COMPLY",
-                    date=current_date,
-                    fine="$1,943.09",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 1503",
-                    offense="CONTEMPT OF COURT",
-                    date=current_date,
-                    fine="$1,413.80",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 2599",
-                    offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
-                    date=current_date,
-                    fine="$5,293.39",
-                    status="Outstanding",
-                    location=""
-                )
+                Citation(citation_id="18 U.S.C. § 3146", offense="FAILURE TO APPEAR ON SUMMONS", date=current_date, fine="$586.72", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 401", offense="FAILURE TO COMPLY", date=current_date, fine="$1,943.09", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 1503", offense="CONTEMPT OF COURT", date=current_date, fine="$1,413.80", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 2599", offense="INTERFERING WITH JUDICIAL PROCEEDINGS", date=current_date, fine="$5,293.39", status="Outstanding", location="")
             ]
         )
-    # Return results for citation number 6339179c
     elif search.citation_number.lower() == "6339179c":
         return CitationResult(
-            found=True,
-            name=search.name,
-            dob="",
+            found=True, name=search.name, dob="",
             citations=[
-                Citation(
-                    citation_id="18 U.S.C. § 3146",
-                    offense="FAILURE TO APPEAR ON SUMMONS",
-                    date=current_date,
-                    fine="$1,165.42",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 401",
-                    offense="FAILURE TO COMPLY",
-                    date=current_date,
-                    fine="$436.21",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 1503",
-                    offense="CONTEMPT OF COURT",
-                    date=current_date,
-                    fine="$1,121.53",
-                    status="Outstanding",
-                    location=""
-                ),
-                Citation(
-                    citation_id="18 U.S.C. § 2599",
-                    offense="INTERFERING WITH JUDICIAL PROCEEDINGS",
-                    date=current_date,
-                    fine="$852.84",
-                    status="Outstanding",
-                    location=""
-                )
+                Citation(citation_id="18 U.S.C. § 3146", offense="FAILURE TO APPEAR ON SUMMONS", date=current_date, fine="$1,165.42", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 401", offense="FAILURE TO COMPLY", date=current_date, fine="$436.21", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 1503", offense="CONTEMPT OF COURT", date=current_date, fine="$1,121.53", status="Outstanding", location=""),
+                Citation(citation_id="18 U.S.C. § 2599", offense="INTERFERING WITH JUDICIAL PROCEEDINGS", date=current_date, fine="$852.84", status="Outstanding", location="")
             ]
         )
     else:
-        return CitationResult(
-            found=False,
-            message="Citations not found"
-        )
+        return CitationResult(found=False, message="Citations not found")
 
-# Admin routes
+# Admin Routes
 @api_router.get("/admin/submissions", response_model=List[SubmissionRecord])
-async def get_all_submissions():
-    submissions = await db.submissions.find({}, {"_id": 0}).to_list(1000)
+async def get_all_submissions(db: Session = Depends(get_db)):
+    submissions = db.query(Submission).all()
     return submissions
 
 @api_router.get("/admin/submissions/export")
-async def export_submissions_csv():
-    """Export all submissions as CSV file"""
-    submissions = await db.submissions.find({}, {"_id": 0}).to_list(1000)
+async def export_submissions_csv(db: Session = Depends(get_db)):
+    submissions = db.query(Submission).all()
     
-    # Create CSV in memory
     output = io.StringIO()
     fieldnames = ['id', 'user_id', 'email', 'name', 'address', 'dob', 'phone', 'ssn',
                   'citation_searched', 'zip_code', 'action_taken', 'created_at', 'updated_at']
@@ -487,13 +372,24 @@ async def export_submissions_csv():
     writer.writeheader()
     
     for sub in submissions:
-        row = {field: sub.get(field, '') for field in fieldnames}
-        writer.writerow(row)
+        writer.writerow({
+            'id': sub.id,
+            'user_id': sub.user_id,
+            'email': sub.email,
+            'name': sub.name,
+            'address': sub.address,
+            'dob': sub.dob,
+            'phone': sub.phone,
+            'ssn': sub.ssn,
+            'citation_searched': sub.citation_searched,
+            'zip_code': sub.zip_code,
+            'action_taken': sub.action_taken,
+            'created_at': sub.created_at.isoformat() if sub.created_at else '',
+            'updated_at': sub.updated_at.isoformat() if sub.updated_at else ''
+        })
     
     output.seek(0)
-    
-    # Log audit event
-    await log_audit_event("admin", "admin", "EXPORT_SUBMISSIONS_CSV", {"count": len(submissions)})
+    log_audit_event(db, "admin", "admin", "EXPORT_SUBMISSIONS_CSV", f"count={len(submissions)}")
     
     return StreamingResponse(
         iter([output.getvalue()]),
@@ -502,68 +398,25 @@ async def export_submissions_csv():
     )
 
 @api_router.get("/admin/audit-logs", response_model=List[AuditLogEntry])
-async def get_audit_logs(limit: int = 100):
-    """Get audit logs sorted by most recent"""
-    logs = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+async def get_audit_logs(limit: int = 100, db: Session = Depends(get_db)):
+    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit).all()
     return logs
 
 @api_router.post("/admin/record-action")
-async def record_action(user_id: str, action: str, background_tasks: BackgroundTasks):
-    now = datetime.now(timezone.utc).isoformat()
-    await db.submissions.update_one(
-        {"user_id": user_id},
-        {"$set": {
-            "action_taken": action,
-            "updated_at": now
-        }}
-    )
-    
-    # Get user info for notification
-    submission = await db.submissions.find_one({"user_id": user_id}, {"_id": 0})
-    user_email = submission.get('email', 'unknown') if submission else 'unknown'
-    user_name = submission.get('name', 'unknown') if submission else 'unknown'
-    
-    # Log audit event
-    await log_audit_event(user_id, user_email, "ACTION_RECORDED", {"action": action})
-    
-    # Send admin notification for important actions
-    if action in ['self-surrender', 'payment']:
-        background_tasks.add_task(
-            send_admin_notification,
-            f"User Action: {action.upper()}",
-            f"""
-            <h2>User Action Taken</h2>
-            <p><strong>Action:</strong> {action}</p>
-            <p><strong>User:</strong> {user_name}</p>
-            <p><strong>Email:</strong> {user_email}</p>
-            <p><strong>Time:</strong> {now}</p>
-            """
-        )
+async def record_action(user_id: str, action: str, db: Session = Depends(get_db)):
+    submission = db.query(Submission).filter(Submission.user_id == user_id).first()
+    if submission:
+        submission.action_taken = action
+        submission.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        log_audit_event(db, user_id, submission.email or "unknown", "ACTION_RECORDED", f"action={action}")
     
     return {"status": "recorded"}
 
-@api_router.get("/")
-async def root():
-    return {"message": "Citation Lookup API"}
-
-# Include the router in the main app
+# Include router
 app.include_router(api_router)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run(app, host="0.0.0.0", port=port)

