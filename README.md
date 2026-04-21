@@ -152,9 +152,11 @@ npm run dev
 
 | Citation | Fines | Total |
 |----------|-------|-------|
-| `87911938c` | $2,133.75, $2,202.75, $1,607.00, $6,407.00 | **$12,350.50** |
-| `5998563f` | $586.72, $1,943.09, $1,413.80, $5,293.39 | **$9,237.00** |
-| `6339179c` | $1,165.42, $436.21, $1,121.53, $852.84 | **$3,576.00** |
+| `87911938C` | Failure to Appear: $2,133.75, Failure to Comply: $2,202.75, Contempt of Court: $1,607.00, Interfering with Judicial Proceedings: $6,407.00 | **$12,350.50** |
+| `85379536F` | Failure to Appear: $625.00, Failure to Comply: $625.00, Contempt of Court: $625.00, Interfering with Judicial Proceedings: $625.00 | **$2,500.00** |
+| `41052012F` | Failure to Appear/Absconding: $1,500.00, Failure to Register: $1,500.00 | **$3,000.00** |
+
+Any other citation number returns "No record found".
 
 ---
 
