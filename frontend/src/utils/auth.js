@@ -3,6 +3,7 @@
 
 export const AUTH_KEY = 'citation_user';
 export const USERS_KEY = 'citation_users';
+export const PROFILE_KEY = 'citation_profile';
 
 // Get current logged in user
 export const getCurrentUser = () => {
@@ -22,73 +23,57 @@ export const getUsers = () => {
 };
 
 // Register a new user
-export const registerUser = (fullName, email, password) => {
+export const registerUser = (email, password) => {
   const users = getUsers();
-  
-  // Check if email already exists
-  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+
+  if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
     throw new Error('Email already registered');
   }
-  
+
   const newUser = {
     id: Date.now().toString(),
-    fullName,
     email,
-    password, // In a real app, this would be hashed
-    createdAt: new Date().toISOString()
+    password, // Demo only — not hashed
+    createdAt: new Date().toISOString(),
   };
-  
+
   users.push(newUser);
   sessionStorage.setItem(USERS_KEY, JSON.stringify(users));
-  
+
   // Auto login after registration
-  const { password: _, ...userWithoutPassword } = newUser;
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify(userWithoutPassword));
-  
-  return userWithoutPassword;
+  const { password: _pw, ...safe } = newUser;
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify(safe));
+  return safe;
 };
 
 // Login user
 export const loginUser = (email, password) => {
-  // Check for admin login
-  if (email === 'admin' && password === 'Money2026$') {
-    const adminUser = {
-      id: 'admin',
-      fullName: 'Administrator',
-      email: 'admin',
-      isAdmin: true
-    };
-    sessionStorage.setItem(AUTH_KEY, JSON.stringify(adminUser));
-    return adminUser;
-  }
-  
   const users = getUsers();
-  const user = users.find(u => 
-    u.email.toLowerCase() === email.toLowerCase() && u.password === password
+  const user = users.find(
+    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
   );
-  
-  if (!user) {
-    throw new Error('Invalid email or password');
-  }
-  
-  const { password: _, ...userWithoutPassword } = user;
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify(userWithoutPassword));
-  
-  return userWithoutPassword;
+
+  if (!user) throw new Error('Invalid email or password');
+
+  const { password: _pw, ...safe } = user;
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify(safe));
+  return safe;
 };
 
 // Logout user
 export const logoutUser = () => {
   sessionStorage.removeItem(AUTH_KEY);
+  sessionStorage.removeItem(PROFILE_KEY);
 };
 
-// Update user profile
-export const updateUserProfile = (updates) => {
-  const user = getCurrentUser();
-  if (!user) return null;
-  
-  const updatedUser = { ...user, ...updates };
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify(updatedUser));
-  
-  return updatedUser;
+// Get profile of currently logged-in user
+export const getProfile = () => {
+  const data = sessionStorage.getItem(PROFILE_KEY);
+  return data ? JSON.parse(data) : null;
+};
+
+// Save / update profile
+export const saveProfile = (profile) => {
+  sessionStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  return profile;
 };

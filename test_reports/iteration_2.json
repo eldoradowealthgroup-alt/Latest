@@ -1,0 +1,52 @@
+{
+  "summary": "End-to-end frontend testing of the static React SPA (HashRouter, sessionStorage, hardcoded citations). Registered/logged in a test user, completed profile, and exercised all flows: search, loading, results (all three hardcoded citations + one invalid), courses of action (Civil + Criminal paths), payment methods, payment form submission, Federal Kiosk (public), logout, and ProtectedRoute. Verified no backend/API calls are made. All 20 primary flows PASSED after test-script fix for payment billing fields.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "PaymentForm.js billing address", "issues": ["Billing Address / City / State / Zip inputs are `required` but have NO data-testid attributes — hurts automated testing. Suggest adding payment-billing-address-input, payment-city-input, payment-state-input, payment-zip-input."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Nice-to-have) Add data-testid to PaymentForm billing Address/City/State/Zip inputs for full testability.",
+    "(Nice-to-have) Silence the React Router v7 future flag warnings by opting-in via `future={{ v7_startTransition: true, v7_relativeSplatPath: true }}` on HashRouter."
+  ],
+  "critical_code_review_comments": [
+    "Passwords stored in sessionStorage as plain text (utils/auth.js registerUser). Acceptable per product decision (demo-only, explicit comment), but worth noting.",
+    "ProtectedRoute uses useEffect + early return pattern — works, but could return a <Navigate replace to=\"/\"/> for a cleaner single-render flow.",
+    "No data-testid on billing address fields in PaymentForm — inconsistent with rest of codebase which uses data-testid everywhere."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (no backend — intentional per pivot)", "frontend": "100% (20/20 flows)"},
+  "test_credentials": "Registered at runtime inside session: tester@example.com / Test1234 (also tested pay@example.com, tester2@example.com). No seeded users — sessionStorage starts empty per tab.",
+  "seed_data_creation": "None. All users/profiles created at runtime via the UI during the test run.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Public URL: https://e9e7062f-1ae8-4bb6-ae26-b1ab5614bce5.preview.emergentagent.com. App uses HashRouter — ALWAYS navigate via /#/<path> (e.g. /#/register). Plain /register returns the Login page because the hash is empty. Loading page deliberately waits ~5s before routing to /#/results (verified 5.0s). Citation keys are lowercased in utils/citations.js — inputs are case-insensitive. Valid citations: 87911938C(4 rows/$12,350.50), 85379536F(4 rows/$2,500.00), 41052012F(2 rows/$3,000.00). Anything else -> data-testid='not-found-message' with text 'CITATIONS NOT FOUND'. Federal Kiosk is a public route. PaymentForm billing Address/City/State/Zip inputs LACK data-testid — fill via placeholder selectors or label.",
+  "flows_verified": [
+    "Login page renders at /#/ with email/password + CREATE NEW ACCOUNT link",
+    "Register (>=6 char password) auto-logs in and redirects to /#/profile",
+    "Profile save stores name/address/dob/phone/email in sessionStorage and navigates to /#/search",
+    "Search page auto-fills name from profile (Test User)",
+    "87911938C -> 4 rows, $12,350.50, Test User in results-full-name",
+    "85379536F -> 4 rows, $2,500.00",
+    "41052012F -> 2 rows, $3,000.00",
+    "INVALID999 -> not-found-message 'CITATIONS NOT FOUND'",
+    "Loading page waits 5.0s (measured) before routing to /#/results",
+    "VIEW COURSES -> /#/courses-of-action with Criminal + Civil toggles",
+    "Civil CHOOSE -> /#/payment-methods; Pay Here -> /#/payment-form; Learn More -> /#/federal-kiosk",
+    "Criminal CHOOSE -> confirm dialog -> Yes -> /#/self-surrender",
+    "Payment Form: filling all fields + authorize checkbox + Submit -> 'Payment submitted successfully.' after ~2s",
+    "Federal Kiosk accessible without login and shows 4 kiosk-image-* thumbnails",
+    "Logout button clears sessionStorage (citation_user=null) and redirects to /#/",
+    "ProtectedRoute: /#/profile redirects to /#/ when logged out",
+    "Login with previously registered creds -> /#/profile",
+    "Zero network requests to /api/ or :8001 during entire run (pure static)"
+  ],
+  "rca of the issue": "Only one false-negative in the first Playwright run: 'Payment form submit' failed because the billing Address/City/State/Zip inputs are HTML-required but lack data-testid, so my generic selector skipped them and the browser's native required-validation blocked submit. RCA: missing data-testid on those 4 inputs (code-quality nit, not a product bug). Verified manually in a second run by filling via placeholder selectors — payment-success-message appeared as expected. No product bugs found."
+}

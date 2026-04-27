@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { GovHeader, GovFooter } from '../components/Layout';
-import { loginUser, isLoggedIn } from '../utils/auth';
+import { registerUser, isLoggedIn } from '../utils/auth';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,12 +17,16 @@ export default function LoginPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
     setLoading(true);
     try {
-      loginUser(email, password);
+      registerUser(email, password);
       navigate('/profile');
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
@@ -41,13 +45,13 @@ export default function LoginPage() {
         <div className="bg-white border border-[#dfe1e2] rounded-sm p-4 sm:p-6 shadow-sm max-w-md">
           <div className="border-b border-[#dfe1e2] pb-3 sm:pb-4 mb-4 sm:mb-6">
             <h2 className="text-base sm:text-lg font-bold tracking-wide text-[#1b1b1b]">
-              SIGN IN TO YOUR ACCOUNT
+              CREATE NEW ACCOUNT
             </h2>
           </div>
 
           <div className="border-l-4 border-[#b38600] pl-3 sm:pl-4 mb-4 sm:mb-6 bg-[#faf3d1] py-2 sm:py-3">
             <p className="text-[#1b1b1b] text-sm sm:text-base">
-              <span className="font-bold">Instruction:</span> Enter your registered credentials to access the docket registry system.
+              <span className="font-bold">Instruction:</span> Create your secure account to access the docket registry system.
             </p>
           </div>
 
@@ -64,7 +68,7 @@ export default function LoginPage() {
                 className="w-full rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base outline-none"
                 placeholder="Enter your email"
                 required
-                data-testid="login-email-input"
+                data-testid="register-email-input"
               />
             </div>
 
@@ -78,16 +82,17 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base outline-none"
-                placeholder="Enter your password"
+                placeholder="Create a password (min. 6 chars)"
                 required
-                data-testid="login-password-input"
+                minLength={6}
+                data-testid="register-password-input"
               />
             </div>
 
             {error && (
               <div
                 className="p-3 sm:p-4 bg-[#FDF0F0] border border-[#E63946] text-[#E63946] text-sm"
-                data-testid="login-error-message"
+                data-testid="register-error-message"
               >
                 {error}
               </div>
@@ -97,20 +102,19 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full sm:w-auto rounded-sm bg-[#1a4480] hover:bg-[#162e51] text-white py-3 px-6 text-sm font-bold disabled:opacity-50"
-              data-testid="login-submit-button"
+              data-testid="register-submit-button"
             >
-              {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
             </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-[#dfe1e2]">
-            <p className="text-sm text-[#1b1b1b] mb-3">Don't have an account?</p>
+            <p className="text-sm text-[#1b1b1b] mb-3">Already have an account?</p>
             <Link
-              to="/register"
+              to="/"
               className="inline-block w-full sm:w-auto text-center rounded-sm border border-[#1a4480] text-[#1a4480] hover:bg-[#1a4480] hover:text-white py-3 px-6 text-sm font-bold transition-colors"
-              data-testid="register-link"
             >
-              CREATE NEW ACCOUNT
+              ← BACK TO SIGN IN
             </Link>
           </div>
         </div>
