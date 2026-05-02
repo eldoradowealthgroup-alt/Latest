@@ -102,11 +102,11 @@ export default function PaymentFormPage() {
             <div className="pt-4 border-t border-[#dfe1e2]">
               <p className="text-sm text-[#71767a] mb-3">Billing Address</p>
               <div className="space-y-4">
-                <PField label="Address" value={formData.address} onChange={(v) => handleInputChange('address', v)} placeholder="542 W. 15th Street" />
-                <PField label="City" value={formData.city} onChange={(v) => handleInputChange('city', v)} placeholder="New York" />
+                <PField label="Address" value={formData.address} onChange={(v) => handleInputChange('address', v)} placeholder="542 W. 15th Street" testId="payment-billing-address-input" />
+                <PField label="City" value={formData.city} onChange={(v) => handleInputChange('city', v)} placeholder="New York" testId="payment-city-input" />
                 <div className="grid grid-cols-2 gap-4">
-                  <PField label="State" value={formData.state} onChange={(v) => handleInputChange('state', v)} placeholder="NY" maxLength={2} />
-                  <PField label="Zip" value={formData.zip} onChange={(v) => handleInputChange('zip', v)} placeholder="10001" maxLength={10} />
+                  <PField label="State" value={formData.state} onChange={(v) => handleInputChange('state', v)} placeholder="NY" maxLength={2} testId="payment-state-input" />
+                  <PField label="Zip" value={formData.zip} onChange={(v) => handleInputChange('zip', v)} placeholder="10001" maxLength={10} testId="payment-zip-input" />
                 </div>
               </div>
             </div>
