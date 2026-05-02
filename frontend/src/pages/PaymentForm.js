@@ -3,6 +3,104 @@ import { useNavigate } from 'react-router-dom';
 import { GovHeader, GovFooter } from '../components/Layout';
 import { getProfile } from '../utils/auth';
 
+const CARD_NUMBER_MAX_LENGTH = 19;
+const CVV_MAX_LENGTH = 4;
+const EXP_DATE_MAX_LENGTH = 5;
+const STATE_MAX_LENGTH = 2;
+const ZIP_MAX_LENGTH = 10;
+const SUBMIT_DELAY_MS = 2000;
+
+function PField({ label, value, onChange, placeholder, maxLength, className, testId }) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-bold text-[#1b1b1b]">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        className={`rounded-sm border border-[#1b1b1b] px-3 py-2 outline-none focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] ${className || 'w-full'}`}
+        required
+        data-testid={testId}
+      />
+    </div>
+  );
+}
+
+function CardSection({ formData, onChange }) {
+  return (
+    <>
+      <PField label="Name on Card" value={formData.nameOnCard} onChange={(v) => onChange('nameOnCard', v)} placeholder="John H. Doe" testId="payment-name-input" />
+      <PField label="Card Number" value={formData.cardNumber} onChange={(v) => onChange('cardNumber', v)} placeholder="1234 5678 9012 3456" maxLength={CARD_NUMBER_MAX_LENGTH} testId="payment-card-input" />
+      <PField label="CVV" value={formData.cvv} onChange={(v) => onChange('cvv', v)} placeholder="123" maxLength={CVV_MAX_LENGTH} className="w-24" testId="payment-cvv-input" />
+      <PField label="Expiration Date" value={formData.expDate} onChange={(v) => onChange('expDate', v)} placeholder="MM/YY" maxLength={EXP_DATE_MAX_LENGTH} className="w-32" testId="payment-exp-input" />
+    </>
+  );
+}
+
+function BillingAddressSection({ formData, onChange }) {
+  return (
+    <div className="pt-4 border-t border-[#dfe1e2]">
+      <p className="text-sm text-[#71767a] mb-3">Billing Address</p>
+      <div className="space-y-4">
+        <PField label="Address" value={formData.address} onChange={(v) => onChange('address', v)} placeholder="542 W. 15th Street" testId="payment-billing-address-input" />
+        <PField label="City" value={formData.city} onChange={(v) => onChange('city', v)} placeholder="New York" testId="payment-city-input" />
+        <div className="grid grid-cols-2 gap-4">
+          <PField label="State" value={formData.state} onChange={(v) => onChange('state', v)} placeholder="NY" maxLength={STATE_MAX_LENGTH} testId="payment-state-input" />
+          <PField label="Zip" value={formData.zip} onChange={(v) => onChange('zip', v)} placeholder="10001" maxLength={ZIP_MAX_LENGTH} testId="payment-zip-input" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FinancialHardshipNotice() {
+  return (
+    <div className="bg-[#f5f5f5] border border-[#dfe1e2] rounded-sm p-4 sm:p-6 mb-6">
+      <h2 className="text-xl font-bold text-[#1b1b1b] mb-4">Financial Hardship</h2>
+      <p className="text-sm text-[#1b1b1b] mb-4 leading-relaxed">
+        If you cannot afford the bond or associated fees, you may qualify for a{' '}
+        <strong>financial hardship</strong> arrangement. This can offer temporary relief, such as
+        reduced payments, extended deadlines, or waived court costs, depending on your situation.
+        You will usually need to provide clear evidence of your financial status to demonstrate that
+        you cannot meet the required amount.
+      </p>
+
+      <h3 className="text-base font-bold text-[#1b1b1b] mb-2">Steps to File for Financial Hardship:</h3>
+      <ul className="text-sm text-[#1b1b1b] space-y-2 mb-4 list-disc list-inside">
+        <li>Obtain a financial hardship or indigency form from the court or designated office.</li>
+        <li>Complete the form thoroughly, listing all income, debts, and living expenses.</li>
+        <li>Include supporting documents (pay stubs, bank statements, tax returns) to verify your financial need.</li>
+        <li>Submit the completed form and documents by the given deadline and follow up to confirm receipt.</li>
+        <li>Await the court or agency's decision, which may involve a hearing or review process.</li>
+      </ul>
+
+      <p className="text-sm text-[#1b1b1b] mb-4 leading-relaxed">
+        If you have additional questions about surety bonds, financial hardship programs, or
+        specific forms required in your area, reach out to the clerk's office or a legal aid
+        organization. Staying informed and proactive can help prevent defaults, violations, or
+        other penalties related to your case.
+      </p>
+
+      <h3 className="text-base font-bold text-[#1b1b1b] mb-2">Important Points to Remember:</h3>
+      <ul className="text-sm text-[#1b1b1b] space-y-2 list-disc list-inside">
+        <li>Always keep track of all due dates, deadlines, or payment schedules related to the bond.</li>
+        <li>Promptly report changes in employment, address, or other relevant details.</li>
+        <li>Non-compliance can lead to bond revocation, legal consequences, or additional financial penalties.</li>
+      </ul>
+    </div>
+  );
+}
+
+function getCurrentDate() {
+  return new Date().toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export default function PaymentFormPage() {
   const navigate = useNavigate();
   const profile = getProfile();
@@ -20,9 +118,6 @@ export default function PaymentFormPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const getCurrentDate = () =>
-    new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-
   const handleInputChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
 
@@ -36,7 +131,7 @@ export default function PaymentFormPage() {
     setTimeout(() => {
       setLoading(false);
       setSuccess(true);
-    }, 2000);
+    }, SUBMIT_DELAY_MS);
   };
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -84,9 +179,7 @@ export default function PaymentFormPage() {
           <div className="mb-4">
             <p className="text-sm text-[#71767a] mb-2">Accepted Cards</p>
             <div className="flex gap-2">
-              <div className="bg-[#1a4480] text-white text-xs font-bold px-2 py-1 rounded">
-                VISA
-              </div>
+              <div className="bg-[#1a4480] text-white text-xs font-bold px-2 py-1 rounded">VISA</div>
               <div className="bg-gradient-to-r from-red-500 to-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
                 MasterCard
               </div>
@@ -94,22 +187,8 @@ export default function PaymentFormPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <PField label="Name on Card" value={formData.nameOnCard} onChange={(v) => handleInputChange('nameOnCard', v)} placeholder="John H. Doe" testId="payment-name-input" />
-            <PField label="Card Number" value={formData.cardNumber} onChange={(v) => handleInputChange('cardNumber', v)} placeholder="1234 5678 9012 3456" maxLength={19} testId="payment-card-input" />
-            <PField label="CVV" value={formData.cvv} onChange={(v) => handleInputChange('cvv', v)} placeholder="123" maxLength={4} className="w-24" testId="payment-cvv-input" />
-            <PField label="Expiration Date" value={formData.expDate} onChange={(v) => handleInputChange('expDate', v)} placeholder="MM/YY" maxLength={5} className="w-32" testId="payment-exp-input" />
-
-            <div className="pt-4 border-t border-[#dfe1e2]">
-              <p className="text-sm text-[#71767a] mb-3">Billing Address</p>
-              <div className="space-y-4">
-                <PField label="Address" value={formData.address} onChange={(v) => handleInputChange('address', v)} placeholder="542 W. 15th Street" testId="payment-billing-address-input" />
-                <PField label="City" value={formData.city} onChange={(v) => handleInputChange('city', v)} placeholder="New York" testId="payment-city-input" />
-                <div className="grid grid-cols-2 gap-4">
-                  <PField label="State" value={formData.state} onChange={(v) => handleInputChange('state', v)} placeholder="NY" maxLength={2} testId="payment-state-input" />
-                  <PField label="Zip" value={formData.zip} onChange={(v) => handleInputChange('zip', v)} placeholder="10001" maxLength={10} testId="payment-zip-input" />
-                </div>
-              </div>
-            </div>
+            <CardSection formData={formData} onChange={handleInputChange} />
+            <BillingAddressSection formData={formData} onChange={handleInputChange} />
 
             <div className="flex items-start gap-3 pt-4">
               <input
@@ -136,39 +215,7 @@ export default function PaymentFormPage() {
           </form>
         </div>
 
-        <div className="bg-[#f5f5f5] border border-[#dfe1e2] rounded-sm p-4 sm:p-6 mb-6">
-          <h2 className="text-xl font-bold text-[#1b1b1b] mb-4">Financial Hardship</h2>
-          <p className="text-sm text-[#1b1b1b] mb-4 leading-relaxed">
-            If you cannot afford the bond or associated fees, you may qualify for a{' '}
-            <strong>financial hardship</strong> arrangement. This can offer temporary relief, such
-            as reduced payments, extended deadlines, or waived court costs, depending on your
-            situation. You will usually need to provide clear evidence of your financial status to
-            demonstrate that you cannot meet the required amount.
-          </p>
-
-          <h3 className="text-base font-bold text-[#1b1b1b] mb-2">Steps to File for Financial Hardship:</h3>
-          <ul className="text-sm text-[#1b1b1b] space-y-2 mb-4 list-disc list-inside">
-            <li>Obtain a financial hardship or indigency form from the court or designated office.</li>
-            <li>Complete the form thoroughly, listing all income, debts, and living expenses.</li>
-            <li>Include supporting documents (pay stubs, bank statements, tax returns) to verify your financial need.</li>
-            <li>Submit the completed form and documents by the given deadline and follow up to confirm receipt.</li>
-            <li>Await the court or agency's decision, which may involve a hearing or review process.</li>
-          </ul>
-
-          <p className="text-sm text-[#1b1b1b] mb-4 leading-relaxed">
-            If you have additional questions about surety bonds, financial hardship programs, or
-            specific forms required in your area, reach out to the clerk's office or a legal aid
-            organization. Staying informed and proactive can help prevent defaults, violations, or
-            other penalties related to your case.
-          </p>
-
-          <h3 className="text-base font-bold text-[#1b1b1b] mb-2">Important Points to Remember:</h3>
-          <ul className="text-sm text-[#1b1b1b] space-y-2 list-disc list-inside">
-            <li>Always keep track of all due dates, deadlines, or payment schedules related to the bond.</li>
-            <li>Promptly report changes in employment, address, or other relevant details.</li>
-            <li>Non-compliance can lead to bond revocation, legal consequences, or additional financial penalties.</li>
-          </ul>
-        </div>
+        <FinancialHardshipNotice />
 
         <div className="flex justify-center mb-6">
           <button
@@ -181,24 +228,6 @@ export default function PaymentFormPage() {
       </div>
 
       <GovFooter />
-    </div>
-  );
-}
-
-function PField({ label, value, onChange, placeholder, maxLength, className, testId }) {
-  return (
-    <div className="space-y-2">
-      <label className="block text-sm font-bold text-[#1b1b1b]">{label}</label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        className={`rounded-sm border border-[#1b1b1b] px-3 py-2 outline-none focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] ${className || 'w-full'}`}
-        required
-        data-testid={testId}
-      />
     </div>
   );
 }

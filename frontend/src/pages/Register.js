@@ -3,6 +3,29 @@ import { useNavigate, Link } from 'react-router-dom';
 import { GovHeader, GovFooter } from '../components/Layout';
 import { registerUser, isLoggedIn } from '../utils/auth';
 
+const MIN_PASSWORD_LENGTH = 6;
+
+function AuthInput({ id, label, type, value, onChange, placeholder, testId, minLength }) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-xs sm:text-sm font-bold uppercase tracking-wide text-[#1b1b1b]">
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base outline-none"
+        placeholder={placeholder}
+        required
+        minLength={minLength}
+        data-testid={testId}
+      />
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -17,8 +40,8 @@ export default function RegisterPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
       return;
     }
     setLoading(true);
@@ -56,38 +79,25 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-xs sm:text-sm font-bold uppercase tracking-wide text-[#1b1b1b]">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base outline-none"
-                placeholder="Enter your email"
-                required
-                data-testid="register-email-input"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="password" className="block text-xs sm:text-sm font-bold uppercase tracking-wide text-[#1b1b1b]">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-sm border border-[#1b1b1b] focus:border-[#1a4480] focus:ring-1 focus:ring-[#1a4480] px-3 py-2 text-base outline-none"
-                placeholder="Create a password (min. 6 chars)"
-                required
-                minLength={6}
-                data-testid="register-password-input"
-              />
-            </div>
+            <AuthInput
+              id="email"
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              placeholder="Enter your email"
+              testId="register-email-input"
+            />
+            <AuthInput
+              id="password"
+              label="Password"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder={`Create a password (min. ${MIN_PASSWORD_LENGTH} chars)`}
+              minLength={MIN_PASSWORD_LENGTH}
+              testId="register-password-input"
+            />
 
             {error && (
               <div

@@ -3,20 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { GovHeader, GovFooter } from '../components/Layout';
 import { searchCitation } from '../utils/citations';
 
+const SEARCH_DURATION_MS = 5000;
+const TICK_INTERVAL_MS = 50;
+
 export default function LoadingPage() {
   const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
-  const searchData = JSON.parse(sessionStorage.getItem('citation_search') || '{}');
+  const [citationNumber, setCitationNumber] = useState('');
 
   useEffect(() => {
+    const stored = sessionStorage.getItem('citation_search');
+    const searchData = stored ? JSON.parse(stored) : {};
+
     if (!searchData?.citation_number) {
       navigate('/search', { replace: true });
-      return;
+      return undefined;
     }
+    setCitationNumber(searchData.citation_number);
 
-    const duration = 5000;
-    const interval = 50;
-    const increment = 100 / (duration / interval);
+    const increment = 100 / (SEARCH_DURATION_MS / TICK_INTERVAL_MS);
 
     const timer = setInterval(() => {
       setProgress((prev) => {
@@ -26,19 +31,19 @@ export default function LoadingPage() {
         }
         return Math.min(prev + increment, 100);
       });
-    }, interval);
+    }, TICK_INTERVAL_MS);
 
     const fetchTimer = setTimeout(() => {
       const result = searchCitation(searchData.citation_number);
       sessionStorage.setItem('citation_results', JSON.stringify(result));
       navigate('/results');
-    }, duration);
+    }, SEARCH_DURATION_MS);
 
     return () => {
       clearInterval(timer);
       clearTimeout(fetchTimer);
     };
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -69,7 +74,7 @@ export default function LoadingPage() {
           </p>
 
           <p className="mt-3 sm:mt-4 font-mono text-xs sm:text-sm text-[#71767a]">
-            Citation: {searchData?.citation_number}
+            Citation: {citationNumber}
           </p>
         </div>
       </div>

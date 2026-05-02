@@ -5,16 +5,12 @@ import { isLoggedIn } from '../utils/auth';
 // HOC to protect routes - redirects to login if not authenticated
 export function ProtectedRoute({ children }) {
   const navigate = useNavigate();
+  const authed = isLoggedIn();
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      navigate('/', { replace: true });
-    }
-  }, [navigate]);
+    if (!authed) navigate('/', { replace: true });
+  }, [authed, navigate]);
 
-  if (!isLoggedIn()) {
-    return null;
-  }
-
+  if (!authed) return null;
   return children;
 }
